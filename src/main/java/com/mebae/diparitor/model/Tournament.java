@@ -1,34 +1,30 @@
 package com.mebae.diparitor.model;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 import com.mebae.diparitor.algorithm.Algorithm;
 import com.mebae.diparitor.algorithm.BruteForceAlgorithm;
-import com.mebae.diparitor.utils.Validator;
 
 public final class Tournament {
-    private int nbRounds;
     private Variant variant;
-    private Registrations registrations;
+    private Map<Player, Integer> playerGameCounts;
     private Algorithm algorithm = new BruteForceAlgorithm();
-    private Set<Round> rounds = Set.of();
+    private Set<Game> games = Set.of();
 
-    public Tournament(int nbRounds, Variant variant, Registrations registrations) {
-        Validator.checkPositive(nbRounds, "A tournament must have at least one round");
+    public Tournament(Variant variant, Map<Player, Integer> playerGameCounts) {
         Objects.requireNonNull(variant);
-        Objects.requireNonNull(registrations);
-        this.nbRounds = nbRounds;
+        Objects.requireNonNull(playerGameCounts); // TODO faire les vérifs & copie
         this.variant = variant;
-        this.registrations = registrations;
+        this.playerGameCounts = playerGameCounts;
     }
 
-    public Set<Round> generateRounds() {
-        rounds = algorithm.run(nbRounds, variant.getPowers(), registrations.getPlayerGameCounts());
-        return rounds;
+    public Set<Game> generateGames() {
+        return algorithm.computeBestTournamentGames(variant.getPowers(), playerGameCounts);
     }
 
-    public Set<Round> getRounds() {
-        return rounds;
+    public Set<Game> getGames() {
+        return games;
     }
 }

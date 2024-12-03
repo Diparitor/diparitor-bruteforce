@@ -1,5 +1,9 @@
 package com.mebae.diparitor;
 
+import com.mebae.diparitor.model.Player;
+import com.mebae.diparitor.model.Power;
+import com.mebae.diparitor.model.Tournament;
+import com.mebae.diparitor.model.Variant;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -7,15 +11,8 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import com.mebae.diparitor.model.Player;
-import com.mebae.diparitor.model.Power;
-import com.mebae.diparitor.model.Registrations;
-import com.mebae.diparitor.model.Tournament;
-import com.mebae.diparitor.model.Variant;
 
 /**
  * JavaFX App
@@ -44,9 +41,9 @@ public class App extends Application {
         // launch();
         // TODO déplacer en tests unitaires
 
-/*         var nbRounds = 3;
+/*
         var variant = Variant.STANDARD_VARIANT;
-        var tournament = new Tournament(nbRounds, variant, new Registrations(Map.ofEntries(
+        var tournament = new Tournament(variant, new Registrations(Map.ofEntries(
             Map.entry(new Player("A", null), 3),
             Map.entry(new Player("B", null), 3),
             Map.entry(new Player("C", null), 3),
@@ -75,16 +72,14 @@ public class App extends Application {
             Map.entry(new Player("Z", null), 2)
         ))); */
 
-        var nbRounds = 1;
-        var variant = new Variant("Simple", Set.of(new Power("1", 0), new Power("2", 0), new Power("3", 0)));
-        var tournament = new Tournament(nbRounds, variant, new Registrations(Map.ofEntries(
-            Map.entry(new Player("A", null), 1),
-            Map.entry(new Player("B", null), 1),
-            Map.entry(new Player("C", null), 1)
-        )));
-        
-        System.out.println(tournament.generateRounds());
-        System.out.println("----------");
-        System.out.println(tournament.getRounds());
+        var variant = new Variant("Simple", Set.of(new Power("France", 0), new Power("Turquie", 0), new Power(
+          "Autriche", 0)));
+        var tournament = new Tournament(variant, Map.ofEntries(
+            Map.entry(new Player("A", "Luile"), 1),
+            Map.entry(new Player("B", "Stiol"), 1),
+            Map.entry(new Player("C", "Sharp"), 1)
+        ));
+
+        tournament.generateGames();
     }
 }

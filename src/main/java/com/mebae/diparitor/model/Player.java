@@ -8,4 +8,9 @@ public record Player(String firstName, String lastName) {
             throw new IllegalArgumentException("A player must have a first name or a last name");
         }
     }
+
+    @Override
+    public String toString() {
+        return firstName + " " + lastName;
+    }
 }
