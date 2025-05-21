@@ -1,30 +1,52 @@
 package com.mebae.diparitor.model;
 
-import java.util.Map;
+import com.mebae.diparitor.entity.Variant;
+
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-
-import com.mebae.diparitor.algorithm.Algorithm;
-import com.mebae.diparitor.algorithm.BruteForceAlgorithm;
+import java.util.stream.Collectors;
 
 public final class Tournament {
-    private Variant variant;
-    private Map<Player, Integer> playerGameCounts;
-    private Algorithm algorithm = new BruteForceAlgorithm();
-    private Set<Game> games = Set.of();
+  private final List<Game> games;
+  private final Set<Player> players;
+  private final Variant variant;
+  private final Coefficient coefficient;
 
-    public Tournament(Variant variant, Map<Player, Integer> playerGameCounts) {
-        Objects.requireNonNull(variant);
-        Objects.requireNonNull(playerGameCounts); // TODO faire les vérifs & copie
-        this.variant = variant;
-        this.playerGameCounts = playerGameCounts;
-    }
+  public Tournament(Variant variant, Set<Player> players, List<Game> games) {
+    Objects.requireNonNull(variant);
+    Objects.requireNonNull(games);
+    this.players = Set.copyOf(players);
+    this.variant = variant;
+    this.games = games;
+    this.coefficient = Coefficient.of(variant, players, games);
+  }
 
-    public Set<Game> generateGames() {
-        return algorithm.computeBestTournamentGames(variant.getPowers(), playerGameCounts);
-    }
+  public static boolean isTournamentValid(Tournament tournament, Set<Player> players) {
+    return players.stream()
+            .allMatch(player -> computeGamePlayersNotDistinct(tournament.games).stream()
+                                        .filter(gamePlayer -> player == gamePlayer)
+                                        .count() == player.gameCount());
+  }
 
-    public Set<Game> getGames() {
-        return games;
-    }
+  public static Tournament computeTournamentWithIndexes(List<Game> allPossibleGames, List<Integer> gamesIndexes,
+                                                        Set<Player> players, Variant variant) {
+    Objects.requireNonNull(allPossibleGames);
+    Objects.requireNonNull(gamesIndexes);
+    return new Tournament(variant, players,
+            gamesIndexes.stream().map(allPossibleGames::get).collect(Collectors.toList()));
+  }
+
+  public static List<Player> computeGamePlayersNotDistinct(List<Game> games) {
+    return games.stream().flatMap(game -> game.players().stream()).toList();
+  }
+
+  public Coefficient getCoefficient() {
+    return coefficient;
+  }
+
+  @Override
+  public String toString() {
+    return games.stream().map(Objects::toString).collect(Collectors.joining(" - "));
+  }
 }

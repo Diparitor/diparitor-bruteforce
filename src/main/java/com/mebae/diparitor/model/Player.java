@@ -1,16 +1,24 @@
 package com.mebae.diparitor.model;
 
-import com.mebae.diparitor.utils.StringUtils;
+import com.mebae.diparitor.entity.PlayerInfo;
 
-public record Player(String firstName, String lastName) {
-    public Player {
-        if (StringUtils.isNullOrEmpty(firstName) && StringUtils.isNullOrEmpty(lastName)) {
-            throw new IllegalArgumentException("A player must have a first name or a last name");
-        }
-    }
+import java.util.Objects;
+import java.util.Set;
 
-    @Override
-    public String toString() {
-        return firstName + " " + lastName;
+public record Player(PlayerInfo playerInfo, int gameCount) {
+  public Player {
+    Objects.requireNonNull(playerInfo);
+    if (gameCount < 1) {
+      throw new IllegalArgumentException("A player must join at least one game");
     }
+  }
+
+  public static int gameCountSum(Set<Player> players) {
+    return players.stream().map(Player::gameCount).reduce(0, Integer::sum);
+  }
+
+  @Override
+  public String toString() {
+    return playerInfo.firstName() + " " + playerInfo.lastName();
+  }
 }

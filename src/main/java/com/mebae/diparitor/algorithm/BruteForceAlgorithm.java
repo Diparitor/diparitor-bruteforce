@@ -1,95 +1,69 @@
 package com.mebae.diparitor.algorithm;
 
+import com.mebae.diparitor.entity.Variant;
 import com.mebae.diparitor.model.*;
 import com.mebae.diparitor.utils.Validator;
 
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
-public final class BruteForceAlgorithm implements Algorithm {
-  public Set<Game> computeBestTournamentGames(Set<Power> powers, Map<Player, Integer> playerGameCounts) {
-    Objects.requireNonNull(powers);
-    Objects.requireNonNull(playerGameCounts);
-    Validator.checkCollectionElementsNotNull(powers, null);
-    Validator.checkCollectionElementsNotNull(playerGameCounts.keySet(), null);
-    Validator.checkCollectionElementsNotNull(playerGameCounts.values(), null);
-    var allTournaments = computeAllPossibleTournaments(playerGameCounts, powers);
-    return Set.of();
+import static com.mebae.diparitor.model.Pairing.computePairingsForAllPlayers;
+import static com.mebae.diparitor.model.Player.gameCountSum;
+import static com.mebae.diparitor.model.Tournament.computeTournamentWithIndexes;
+import static com.mebae.diparitor.utils.ListUtils.computeFirstIndexes;
+import static com.mebae.diparitor.utils.ListUtils.computeNextIndexes;
+
+public final class BruteForceAlgorithm {
+  public static Tournament computeBestTournament(Variant variant, Set<Player> players) {
+    Objects.requireNonNull(players);
+    Objects.requireNonNull(variant);
+    Validator.checkNonNullElements(players, "Players can't contain null");
+    var gameCount = gameCountSum(players) / variant.powerCount();
+    var allPossiblePairings = computePairingsForAllPlayers(players, variant.powers());
+    var allPossibleGames =
+            computeAllPossibleGames(computeFirstIndexes(variant.powerCount()), new ArrayList<>(), allPossiblePairings,
+                    variant);
+    var tournaments =
+            computeAllPossibleTournaments(new ArrayList<>(), computeFirstIndexes(gameCount), allPossibleGames, variant,
+                    players);
+    System.out.println("------------------");
+    var minCoefficient = tournaments.stream().map(Tournament::getCoefficient).min(Coefficient::compareTo).orElseThrow();
+    return tournaments.stream()
+            .filter(tournament -> tournament.getCoefficient().equals(minCoefficient))
+            .findFirst()
+            .orElseThrow();
   }
 
-  /**
-   * @return la liste de toutes les rondes possibles.
-   */
-  private Set<Set<Game>> computeAllPossibleTournaments(Map<Player, Integer> playerGameCounts, Set<Power> powers) {
-    var powerCount = powers.size();
-    var gameCount = playerGameCounts.values().stream().reduce(0, Integer::sum);
-    var allPossibleGames = computeAllPossibleGames(new HashSet<>(),
-      computeFirstGameIndexes(powerCount),
-      computePairingsForAllPlayers(playerGameCounts.keySet(), powers),
-      powerCount);
-    return Set.of();
+  private static ArrayList<Tournament> computeAllPossibleTournaments(ArrayList<Tournament> tournaments,
+                                                                     List<Integer> currentTournamentGameIndexesList,
+                                                                     List<Game> allPossibleGames, Variant variant,
+                                                                     Set<Player> players) {
+    if (currentTournamentGameIndexesList.isEmpty()) {
+      return tournaments;
+    }
+    var tournament = computeTournamentWithIndexes(allPossibleGames, currentTournamentGameIndexesList, players, variant);
+    if (Tournament.isTournamentValid(tournament, players)) {
+      tournaments.add(tournament);
+      System.out.println(tournament + " Coefficient : " + tournament.getCoefficient());
+    }
+    return computeAllPossibleTournaments(tournaments,
+            computeNextIndexes(currentTournamentGameIndexesList, allPossibleGames.size() - 1), allPossibleGames,
+            variant, players);
   }
 
-  /**
-   * @return la liste de toutes les parties possibles.
-   */
-  private Set<Game> computeAllPossibleGames(Set<Game> allPossibleGames,
-                                            ArrayList<Integer> currentGamePairingIndexesList,
-                                            List<Pairing> allPossiblePairings,
-                                            int powerCount) {
-    var possiblePairingsCount = allPossiblePairings.size();
+  private static ArrayList<Game> computeAllPossibleGames(List<Integer> currentGamePairingIndexesList,
+                                                         ArrayList<Game> allPossibleGames,
+                                                         List<Pairing> allPossiblePairings, Variant variant) {
     if (currentGamePairingIndexesList.isEmpty()) {
       return allPossibleGames;
     }
     var currentGame = Game.of(allPossiblePairings, currentGamePairingIndexesList);
-    if (currentGame.isValid(powerCount)) {
-      System.out.println(currentGame); // TODO remove
+    if (currentGame.isValid(variant.powerCount())) {
       allPossibleGames.add(currentGame);
     }
-    return computeAllPossibleGames(allPossibleGames,
-      computeNextGameIndexes(currentGamePairingIndexesList, powerCount - 1, possiblePairingsCount - 1),
-      allPossiblePairings,
-      powerCount);
-  }
-
-  /**
-   * @return la liste des index des appariements de la première partie à tester.
-   */
-  private ArrayList<Integer> computeFirstGameIndexes(int powerCount) {
-    return new ArrayList<>(IntStream.range(0, powerCount).boxed().toList());
-  }
-
-  /**
-   * @return la liste des index des appariements de la prochaine partie à tester.
-   */
-  private ArrayList<Integer> computeNextGameIndexes(ArrayList<Integer> currentGame,
-                                                    int currentPairingIndex,
-                                                    int lastPossiblePairing) {
-    if (currentGame.get(currentPairingIndex) >= lastPossiblePairing - (currentGame.size() - 1) + currentPairingIndex) {
-      if (currentPairingIndex == 0) {
-        return new ArrayList<>(List.of());
-      }
-      IntStream.range(currentPairingIndex, currentGame.size())
-        .forEach(i -> currentGame.set(i, currentGame.get(i - 1) + 1));
-      return computeNextGameIndexes(currentGame, currentPairingIndex - 1, lastPossiblePairing);
-    }
-    currentGame.set(currentPairingIndex, currentGame.get(currentPairingIndex) + 1);
-    return currentGame;
-  }
-
-  /**
-   * @return la liste des paires possibles entre joueurs et puissances.
-   */
-  private List<Pairing> computePairingsForAllPlayers(Set<Player> players, Set<Power> powers) {
-    return players.stream().flatMap(player -> computePairingsForPlayer(player, powers)).collect(Collectors.toList());
-  }
-
-  /**
-   * @return un flux des paires possibles pour un joueur donné et les puissances.
-   */
-  private Stream<Pairing> computePairingsForPlayer(Player player, Set<Power> powers) {
-    return powers.stream().map(power -> new Pairing(player, power));
+    return computeAllPossibleGames(computeNextIndexes(currentGamePairingIndexesList, allPossiblePairings.size() - 1),
+            allPossibleGames, allPossiblePairings, variant);
   }
 }
